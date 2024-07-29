@@ -209,7 +209,7 @@ impl HttpClient {
             .send()
             .await;
         let response_value = HttpClient::handle_response::<IdCertToken>(request_response).await?;
-        let id_cert = IdCert::<S, P>::from_pem_unchecked(&response_value.id_cert.to_string())?;
+        let id_cert = IdCert::<S, P>::from_pem_unchecked(&response_value.id_cert)?;
         Ok((id_cert, response_value.token))
     }
 

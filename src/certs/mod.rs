@@ -8,7 +8,7 @@ use std::str::FromStr;
 use der::asn1::BitString;
 use der::pem::LineEnding;
 use der::{Decode, DecodePem, Encode, EncodePem};
-use spki::{AlgorithmIdentifierOwned, SubjectPublicKeyInfoOwned};
+use spki::{AlgorithmIdentifierOwned, ObjectIdentifier, SubjectPublicKeyInfoOwned};
 use x509_cert::name::{Name, RdnSequence};
 
 use crate::errors::ConversionError;
@@ -67,7 +67,7 @@ impl SessionId {
             Ok(string) => string,
             Err(_) => {
                 return Err(ConstraintError::Malformed(Some(
-                    "Invalid Ia5String passed as SessionId".to_string(),
+                    "Invalid Ia5String passed as SessionId".into(),
                 )))
             }
         };
@@ -95,7 +95,7 @@ impl TryFrom<Ia5String> for SessionId {
     type Error = ConstraintError;
 
     fn try_from(value: Ia5String) -> Result<Self, Self::Error> {
-        SessionId::new_validated(value.to_string().as_str())
+        SessionId::new_validated(value.as_str())
     }
 }
 
@@ -111,8 +111,8 @@ pub enum Target {
 #[repr(u8)]
 /// `PKCS#10` version. From the PKCS specification document (RFC 2986):
 /// > version is the version number, for compatibility with future
-/// revisions of this document.  It shall be 0 for this version of
-/// the standard.
+/// > revisions of this document.  It shall be 0 for this version of
+/// > the standard.
 ///
 /// The specification also says:
 /// > `version       INTEGER { v1(0) } (v1,...),`
@@ -186,14 +186,14 @@ pub fn equal_domain_components(name_1: &Name, name_2: &Name) -> bool {
     let mut domain_components_2 = Vec::new();
     for rdn in name_1.0.iter() {
         for ava in rdn.0.iter() {
-            if ava.oid.to_string().as_str() == OID_RDN_DOMAIN_COMPONENT {
+            if ava.oid == ObjectIdentifier::new_unwrap(OID_RDN_DOMAIN_COMPONENT) {
                 domain_components_1.push(String::from_utf8_lossy(ava.value.value()));
             }
         }
     }
     for rdn in name_2.0.iter() {
         for ava in rdn.0.iter() {
-            if ava.oid.to_string().as_str() == OID_RDN_DOMAIN_COMPONENT {
+            if ava.oid == ObjectIdentifier::new_unwrap(OID_RDN_DOMAIN_COMPONENT) {
                 domain_components_2.push(String::from_utf8_lossy(ava.value.value()));
             }
         }

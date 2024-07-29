@@ -4,6 +4,7 @@
 
 use crate::errors::ERR_MSG_DC_UID_MISMATCH;
 
+use spki::ObjectIdentifier;
 use x509_cert::attr::AttributeTypeAndValue;
 
 use super::*;
@@ -22,67 +23,53 @@ impl Constrained for Name {
     /// - MAY have other attributes, which might be ignored by other home servers and other clients.
     // I apologize. This is horrible. I'll redo it eventually. Depression made me do it. -bitfl0wer
     fn validate(&self, target: Option<Target>) -> Result<(), ConstraintError> {
-        log::trace!("[Name::validate()] Validating Name: {}", self.to_string());
-        let mut num_cn: u8 = 0;
-        let mut num_dc: u8 = 0;
-        let mut num_uid: u8 = 0;
-        let mut num_unique_identifier: u8 = 0;
-        let mut vec_dc: Vec<RelativeDistinguishedName> = Vec::new();
-        let mut uid: RelativeDistinguishedName = RelativeDistinguishedName::default();
-        let mut cn: RelativeDistinguishedName = RelativeDistinguishedName::default();
+        log::trace!("[Name::validate()] Validating Name: {self}");
+        let mut num_cn = 0;
+        let mut num_dc = 0;
+        let mut num_uid = 0;
+        let mut num_unique_identifier = 0;
+        let mut vec_dc: Vec<&RelativeDistinguishedName> = Vec::new();
+        let mut uid: &RelativeDistinguishedName = &RelativeDistinguishedName::default();
+        let mut cn: &RelativeDistinguishedName = &RelativeDistinguishedName::default();
 
         let rdns = &self.0;
         for rdn in rdns.iter() {
-            log::trace!(
-                "[Name::validate()] Determining OID of RDN {} and performing appropriate validation",
-                rdn.to_string()
-            );
+            log::trace!("[Name::validate()] Determining OID of RDN {rdn} and performing appropriate validation");
+
             for item in rdn.0.iter() {
-                match item.oid.to_string().as_str() {
-                    OID_RDN_UID => {
-                        log::trace!("[Name::validate()] Found UID in RDN: {}", item.to_string());
+                match item.oid {
+                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_UID) => {
+                        log::trace!("[Name::validate()] Found UID in RDN: {item}");
                         num_uid += 1;
-                        uid = rdn.clone();
+                        uid = rdn;
                         validate_rdn_uid(item)?;
                     }
-                    OID_RDN_UNIQUE_IDENTIFIER => {
-                        log::trace!(
-                            "[Name::validate()] Found uniqueIdentifier in RDN: {}",
-                            item.to_string()
-                        );
+                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_UNIQUE_IDENTIFIER) => {
+                        log::trace!("[Name::validate()] Found uniqueIdentifier in RDN: {item}");
                         num_unique_identifier += 1;
                         validate_rdn_unique_identifier(item)?;
                     }
-                    OID_RDN_COMMON_NAME => {
-                        log::trace!(
-                            "[Name::validate()] Found Common Name in RDN: {}",
-                            item.to_string()
-                        );
+                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_COMMON_NAME) => {
+                        log::trace!("[Name::validate()] Found Common Name in RDN: {item}");
                         num_cn += 1;
-                        cn = rdn.clone();
+                        cn = rdn;
                         if num_cn > 1 {
                             return Err(ConstraintError::OutOfBounds {
                                 lower: 1,
                                 upper: 1,
-                                actual: num_cn.to_string(),
-                                reason: "[Name::validate()] Distinguished Names must not contain more than one Common Name field".to_string()
+                                actual: num_cn,
+                                reason: "[Name::validate()] Distinguished Names must not contain more than one Common Name field".into()
                             });
                         }
                     }
-                    OID_RDN_DOMAIN_COMPONENT => {
-                        log::trace!(
-                            "[Name::validate()] Found Domain Component in RDN: {}",
-                            item.to_string()
-                        );
+                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_DOMAIN_COMPONENT) => {
+                        log::trace!("[Name::validate()] Found Domain Component in RDN: {item}");
                         num_dc += 1;
-                        vec_dc.push(rdn.clone());
+                        vec_dc.push(rdn);
                     }
-                    _ => {
-                        log::trace!(
-                            "[Name::validate()] Found unknown/non-validated component in RDN: {}",
-                            item.to_string()
-                        );
-                    }
+                    _ => log::trace!(
+                        "[Name::validate()] Found unknown/non-validated component in RDN: {item}"
+                    ),
                 }
             }
         }
@@ -92,29 +79,24 @@ impl Constrained for Name {
             match target {
                 Target::Actor => {
                     log::trace!(
-                        "[Name::validate()] Validating DC {:?} matches DC in UID {}",
-                        vec_dc
-                            .iter()
-                            .map(|dc| dc.to_string())
-                            .collect::<Vec<String>>(),
-                        uid.to_string()
+                        "[Name::validate()] Validating DC {vec_dc:?} matches DC in UID {uid}"
                     );
-                    validate_dc_matches_dc_in_uid(&vec_dc, &uid)?;
+
+                    validate_dc_matches_dc_in_uid(&vec_dc, uid)?;
                 }
                 Target::HomeServer => {
                     if num_uid > 0 || num_unique_identifier > 0 {
                         return Err(ConstraintError::OutOfBounds {
                             lower: 0,
                             upper: 0,
-                            actual: "1".to_string(),
-                            reason: "Home Servers must not have UID or uniqueIdentifier"
-                                .to_string(),
+                            actual: 1,
+                            reason: "Home Servers must not have UID or uniqueIdentifier".into(),
                         });
                     }
                 }
             };
         } else if num_uid != 0 {
-            validate_dc_matches_dc_in_uid(&vec_dc, &uid)?;
+            validate_dc_matches_dc_in_uid(&vec_dc, uid)?;
         }
         log::trace!(
             "Encountered {} UID components and {} Common Name components",
@@ -123,47 +105,47 @@ impl Constrained for Name {
         );
         if num_uid != 0 && num_cn != 0 {
             log::trace!("Validating UID username matches Common Name");
-            validate_uid_username_matches_cn(&uid, &cn)?;
+            validate_uid_username_matches_cn(uid, cn)?;
         }
         if num_dc == 0 {
             return Err(ConstraintError::OutOfBounds {
                 lower: 1,
-                upper: u8::MAX as i32,
-                actual: "0".to_string(),
-                reason: "Domain Component is missing in Name component".to_string(),
+                upper: u8::MAX as usize,
+                actual: 0,
+                reason: "Domain Component is missing in Name component".into(),
             });
         }
         if num_uid > 1 {
             return Err(ConstraintError::OutOfBounds {
                 lower: 0,
                 upper: 1,
-                actual: num_uid.to_string(),
-                reason: "Too many UID components supplied".to_string(),
+                actual: num_uid,
+                reason: "Too many UID components supplied".into(),
             });
         }
         if num_unique_identifier > 1 {
             return Err(ConstraintError::OutOfBounds {
                 lower: 0,
                 upper: 1,
-                actual: num_unique_identifier.to_string(),
-                reason: "Too many uniqueIdentifier components supplied".to_string(),
+                actual: num_unique_identifier,
+                reason: "Too many uniqueIdentifier components supplied".into(),
             });
         }
         if num_unique_identifier > 0 && num_uid == 0 {
             return Err(ConstraintError::OutOfBounds {
                 lower: 1,
                 upper: 1,
-                actual: num_uid.to_string(),
+                actual: num_uid,
                 reason: "Actors must have uniqueIdentifier AND UID, only uniqueIdentifier found"
-                    .to_string(),
+                    .into(),
             });
         }
         if num_uid > 0 && num_unique_identifier == 0 {
             return Err(ConstraintError::OutOfBounds {
                 lower: 1,
                 upper: 1,
-                actual: num_unique_identifier.to_string(),
-                reason: "Actors must have uniqueIdentifier AND UID, only UID found".to_string(),
+                actual: num_unique_identifier,
+                reason: "Actors must have uniqueIdentifier AND UID, only UID found".into(),
             });
         }
         Ok(())
@@ -172,49 +154,49 @@ impl Constrained for Name {
 
 /// Check if the domain components are equal between the UID and the DCs
 fn validate_dc_matches_dc_in_uid(
-    vec_dc: &[RelativeDistinguishedName],
+    vec_dc: &[&RelativeDistinguishedName],
     uid: &RelativeDistinguishedName,
 ) -> Result<(), ConstraintError> {
     // Find the position of the @ in the UID
     let position_of_at = match uid.to_string().find('@') {
         Some(pos) => pos,
         None => {
-            log::warn!(
-                "[validate_dc_matches_dc_in_uid] UID {} does not contain an @",
-                uid.to_string()
-            );
+            log::warn!("[validate_dc_matches_dc_in_uid] UID {uid} does not contain an @",);
             return Err(ConstraintError::Malformed(Some(
-                "UID does not contain an @".to_string(),
+                "UID does not contain an @".into(),
             )));
         }
     };
     // Split the UID at the @
-    let uid_without_username = uid.to_string().split_at(position_of_at + 1).1.to_string(); // +1 to not include the @
+    let uid_without_username = uid.to_string();
+    let uid_without_username = uid_without_username.split_at(position_of_at + 1).1; // +1 to not include the @
+
     let dc_normalized_uid: Vec<&str> = uid_without_username.split('.').collect();
-    dbg!(dc_normalized_uid.clone());
+    dbg!(&dc_normalized_uid);
     let mut index = 0u8;
     // Iterate over the DCs in the UID and check if they are equal to the DCs in the DCs
-    for component in dc_normalized_uid.iter() {
+    for &component in dc_normalized_uid.iter() {
         let equivalent_dc = match vec_dc.get(index as usize) {
             Some(dc) => dc,
             None => {
                 return Err(ConstraintError::Malformed(Some(
-                    ERR_MSG_DC_UID_MISMATCH.to_string(),
-                )))
+                    ERR_MSG_DC_UID_MISMATCH.into(),
+                )));
             }
         };
-        let equivalent_dc = equivalent_dc.to_string().split_at(3).1.to_string();
-        if component != &equivalent_dc.to_string() {
+
+        let equivalent_dc = equivalent_dc.to_string();
+        if component != equivalent_dc.split_at(3).1 {
             return Err(ConstraintError::Malformed(Some(
-                ERR_MSG_DC_UID_MISMATCH.to_string(),
+                ERR_MSG_DC_UID_MISMATCH.into(),
             )));
         }
         index = match index.checked_add(1) {
             Some(i) => i,
             None => {
                 return Err(ConstraintError::Malformed(Some(
-                    "More than 255 Domain Components found".to_string(),
-                )))
+                    "More than 255 Domain Components found".into(),
+                )));
             }
         };
     }
@@ -226,10 +208,10 @@ fn validate_dc_matches_dc_in_uid(
 fn validate_rdn_uid(item: &AttributeTypeAndValue) -> Result<(), ConstraintError> {
     let fid_regex = Regex::new(r"\b([a-z0-9._%+-]+)@([a-z0-9-]+(\.[a-z0-9-]+)*)")
         .expect("Regex failed to compile");
-    let string = String::from_utf8_lossy(item.value.value()).to_string();
-    if !fid_regex.is_match(&string) {
+
+    if !fid_regex.is_match(&String::from_utf8_lossy(item.value.value())) {
         Err(ConstraintError::Malformed(Some(
-            "Provided Federation ID (FID) in uid field seems to be invalid".to_string(),
+            "Provided Federation ID (FID) in uid field seems to be invalid".into(),
         )))
     } else {
         Ok(())
@@ -254,17 +236,14 @@ fn validate_uid_username_matches_cn(
     let position_of_at = match uid_str.find('@') {
         Some(pos) => pos,
         None => {
-            log::warn!(
-                "[validate_dc_matches_dc_in_uid] UID \"{}\" does not contain an @",
-                uid.to_string()
-            );
+            log::warn!("[validate_dc_matches_dc_in_uid] UID \"{uid}\" does not contain an @",);
             return Err(ConstraintError::Malformed(Some(
-                "UID does not contain an @".to_string(),
+                "UID does not contain an @".into(),
             )));
         }
     };
     // Split the UID at the @
-    let uid_username_only = uid_str.to_string().split_at(position_of_at).0.to_string();
+    let uid_username_only = uid_str.split_at(position_of_at).0;
     match uid_username_only == cn_str {
         true => Ok(()),
         false => {
@@ -274,7 +253,7 @@ fn validate_uid_username_matches_cn(
                 cn_str
             );
             Err(ConstraintError::Malformed(Some(
-                "UID username does not match the Common Name".to_string(),
+                "UID username does not match the Common Name".into(),
             )))
         }
     }

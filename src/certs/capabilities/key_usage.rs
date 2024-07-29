@@ -65,9 +65,9 @@ pub struct KeyUsages {
 
 impl KeyUsages {
     /// Creates a new KeyUsages struct from a slice of KeyUsage variants.
-    pub fn new(key_usages: &[KeyUsage]) -> Self {
+    pub fn new(key_usages: impl Into<Vec<KeyUsage>>) -> Self {
         KeyUsages {
-            key_usages: key_usages.to_vec(),
+            key_usages: key_usages.into(),
         }
     }
 
@@ -88,8 +88,8 @@ impl KeyUsages {
     ///     encipherOnly            (7),
     ///     decipherOnly            (8) }
     /// ```
-    pub fn from_bitstring(bitstring: BitString) -> Result<Self, ConversionError> {
-        let mut byte_array = bitstring.raw_bytes().to_vec();
+    pub fn from_bitstring(bitstring: &BitString) -> Result<Self, ConversionError> {
+        let mut byte_array = bitstring.raw_bytes();
         log::trace!("[from_bitstring] BitString raw bytes: {:?}", byte_array);
         let mut key_usages = Vec::new();
         if byte_array == [0] || byte_array.is_empty() {
@@ -97,21 +97,24 @@ impl KeyUsages {
             return Ok(KeyUsages { key_usages });
         }
         if byte_array[0] == 0 && byte_array.len() == 2 {
-            byte_array.remove(0);
+            byte_array = &byte_array[1..]; // byte_array.remove(0);
         }
         if byte_array.len() == 2 {
             // If the length of the byte array is 2, this means that DecipherOnly is set.
             key_usages.push(KeyUsage::DecipherOnly);
-            byte_array.remove(0);
+            byte_array = &byte_array[1..];
         }
         let mut current_try = 128u8;
+
+        let mut first = byte_array[0];
+
         loop {
             // If the first byte is bigger than or equal to the current_try, this means that the
             // KeyUsage belonging to the current_try is set. We can then divide the current_try by 2
             // and continue checking if the KeyUsage belonging to the current_try is set, until we
             // reach current_try == 1.
-            if current_try <= byte_array[0] {
-                byte_array[0] -= current_try;
+            if current_try <= first {
+                first -= current_try;
                 key_usages.push(match current_try {
                     128 => KeyUsage::DigitalSignature,
                     64 => KeyUsage::ContentCommitment,
@@ -130,9 +133,9 @@ impl KeyUsages {
                 current_try /= 2;
             }
         }
-        if byte_array[0] != 0 {
+        if first != 0 {
             return Err(ConversionError::InvalidInput(InvalidInput::Malformed(
-                "Could not properly convert this BitString to KeyUsages. The BitString contains a value not representable by KeyUsages".to_string(),
+                "Could not properly convert this BitString to KeyUsages. The BitString contains a value not representable by KeyUsages".into(),
             )));
         }
         log::debug!("[from_bitstring] Converted KeyUsages: {:?}", key_usages);
@@ -170,9 +173,12 @@ impl KeyUsages {
                 KeyUsage::DecipherOnly => encoded_numbers[0] += 128,
             }
         }
-        let mut encoded_numbers_vec = encoded_numbers.to_vec();
+
+        let mut enc = &encoded_numbers[..];
+
         if encoded_numbers[0] == 0 {
-            encoded_numbers_vec.remove(0);
+            enc = &encoded_numbers[1..];
+
             // {:08b} means that we want to format the number as a binary string with 8 bits.
             let binary = format!("{:08b}", encoded_numbers[1].to_be());
             for bit in binary.chars() {
@@ -190,8 +196,8 @@ impl KeyUsages {
             unused_bits = 7;
         }
         log::debug!("[to_bitstring] Unused bits: {}", unused_bits);
-        log::debug!("[to_bitstring] Encoded values: {:?}", encoded_numbers_vec);
-        BitString::new(unused_bits, encoded_numbers_vec)
+        log::debug!("[to_bitstring] Encoded values: {:?}", enc);
+        BitString::new(unused_bits, enc)
             .expect("Error when converting KeyUsages to BitString. Please report this error to https://github.com/polyphony-chat/polyproto")
     }
 }
@@ -208,23 +214,23 @@ impl TryFrom<Attribute> for KeyUsages {
     fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         if value.tag() != Tag::Sequence {
             return Err(ConversionError::InvalidInput(InvalidInput::Malformed(
-                format!("Expected Sequence, found {}", value.tag(),),
+                format!("Expected Sequence, found {}", value.tag()).into(),
             )));
         }
         match value.values.len() {
-            0 => return Ok(KeyUsages::new(&[])),
+            0 => return Ok(KeyUsages::new([])),
             1 => (),
             _ => {
                 return Err(ConversionError::InvalidInput(InvalidInput::Length {
                     min_length: 0,
                     max_length: 1,
-                    actual_length: value.values.len().to_string(),
+                    actual_length: value.values.len(),
                 }));
             }
         };
         let inner_value = value.values.get(0).expect("Illegal state. Please report this error to https://github.com/polyphony-chat/polyproto");
         log::debug!("Inner value: {:?}", inner_value);
-        KeyUsages::from_bitstring(BitString::from_der(&inner_value.to_der()?)?)
+        KeyUsages::from_bitstring(&BitString::from_der(&inner_value.to_der()?)?)
     }
 }
 
@@ -232,16 +238,17 @@ impl TryFrom<Extension> for KeyUsages {
     type Error = ConversionError;
 
     fn try_from(value: Extension) -> Result<Self, Self::Error> {
-        if value.extn_id.to_string().as_str() != OID_KEY_USAGE {
+        if value.extn_id != ObjectIdentifier::new_unwrap(OID_KEY_USAGE) {
             return Err(ConversionError::InvalidInput(InvalidInput::Malformed(
                 format!(
-                    "Expected OID {} for KeyUsages, found OID {}",
-                    OID_KEY_USAGE, value.extn_id
-                ),
+                    "Expected OID {OID_KEY_USAGE} for KeyUsages, found OID {}",
+                    value.extn_id
+                )
+                .into(),
             )));
         }
         let any = Any::from_der(value.extn_value.as_bytes())?;
-        KeyUsages::from_bitstring(BitString::from_der(&any.to_der()?)?)
+        KeyUsages::from_bitstring(&BitString::from_der(&any.to_der()?)?)
     }
 }
 
@@ -275,14 +282,13 @@ impl TryFrom<KeyUsages> for Extension {
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
-#[cfg(test)]
 mod test {
     use super::*;
 
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
     #[cfg_attr(not(target_arch = "wasm32"), test)]
     fn key_usages_to_bitstring() {
-        let key_usages = KeyUsages::new(&[
+        let key_usages = KeyUsages::new(vec![
             KeyUsage::CrlSign,
             KeyUsage::EncipherOnly,
             KeyUsage::KeyAgreement,

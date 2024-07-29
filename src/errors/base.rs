@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::borrow::Cow;
+
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Clone)]
@@ -9,18 +11,19 @@ use thiserror::Error;
 pub enum ConstraintError {
     #[error("The value did not meet the set validation criteria and is considered malformed")]
     /// The value did not meet the set validation criteria and is considered malformed
-    Malformed(Option<String>),
+    Malformed(Option<Cow<'static, str>>),
+
     #[error("The value was expected to be between {lower:?} and {upper:?} but was {actual:?}")]
     /// A value is out of bounds
     OutOfBounds {
         /// The lower bound of the value
-        lower: i32,
+        lower: usize,
         /// The upper bound of the value
-        upper: i32,
+        upper: usize,
         /// The actual value
-        actual: String,
+        actual: usize,
         /// Additional context
-        reason: String,
+        reason: Cow<'static, str>,
     },
 }
 
@@ -30,7 +33,8 @@ pub enum ConstraintError {
 pub enum InvalidInput {
     #[error("The value is malformed and cannot be used as input: {0}")]
     /// The value is malformed and cannot be used as input
-    Malformed(String),
+    Malformed(Cow<'static, str>),
+
     #[error("The value was expected to be between {min_length:?} and {max_length:?} but was {actual_length:?}")]
     /// A value is out of bounds
     Length {
@@ -39,6 +43,6 @@ pub enum InvalidInput {
         /// The maximum length of the value
         max_length: usize,
         /// The actual length of the value
-        actual_length: String,
+        actual_length: usize,
     },
 }

@@ -13,8 +13,8 @@ impl Constrained for ChallengeString {
             return Err(ConstraintError::OutOfBounds {
                 lower: 32,
                 upper: 255,
-                actual: self.challenge.len().to_string(),
-                reason: ERR_MSG_CHALLENGE_STRING_LENGTH.to_string(),
+                actual: self.challenge.len(),
+                reason: ERR_MSG_CHALLENGE_STRING_LENGTH.into(),
             });
         }
         Ok(())

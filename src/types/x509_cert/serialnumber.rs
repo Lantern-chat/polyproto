@@ -82,29 +82,29 @@ impl SerialNumber {
     /// or if the byte slice is longer than 16 bytes. Leading zeros of byte slices are stripped, so
     /// 17 bytes are allowed, if the first byte is zero.
     pub fn try_as_u128(&self) -> Result<u128, ConversionError> {
-        let mut bytes = self.as_bytes().to_vec();
+        let mut bytes = self.as_bytes();
         if bytes.is_empty() {
             return Err(InvalidInput::Length {
                 min_length: 1,
                 max_length: 16,
-                actual_length: 1.to_string(),
+                actual_length: 1,
             }
             .into());
         }
-        if *bytes.first().unwrap() == 0 {
-            bytes.remove(0);
+        if bytes.first() == Some(&0) {
+            bytes = &bytes[1..]; // bytes.remove(0)
         }
         trace!("bytes: {:?}", bytes);
         if bytes.len() > 16 {
             return Err(InvalidInput::Length {
                 min_length: 1,
                 max_length: 16,
-                actual_length: bytes.len().to_string(),
+                actual_length: bytes.len(),
             }
             .into());
         }
         let mut buf = [0u8; 16];
-        buf[16 - bytes.len()..].copy_from_slice(&bytes);
+        buf[16 - bytes.len()..].copy_from_slice(bytes);
         Ok(u128::from_be_bytes(buf))
     }
 }

@@ -171,7 +171,7 @@ impl<P: Profile, S: Signature, Q: PublicKey<S>> TryFrom<TbsCertificateInner<P>>
                 None => return Err(ConversionError::InvalidInput(
                     crate::errors::base::InvalidInput::Malformed(
                         "field 'extensions' was None. Expected: Some(x509_cert::ext::Extensions)"
-                            .to_string(),
+                            .into(),
                     ),
                 )),
             };
@@ -204,10 +204,9 @@ impl<P: Profile, S: Signature, Q: PublicKey<S>> TryFrom<IdCertTbs<S, Q>>
             Ok(sernum) => sernum,
             Err(e) => {
                 return Err(ConversionError::InvalidInput(
-                    crate::errors::base::InvalidInput::Malformed(format!(
-                        "Could not convert serial number: {}",
-                        e
-                    )),
+                    crate::errors::base::InvalidInput::Malformed(
+                        format!("Could not convert serial number: {e}").into(),
+                    ),
                 ))
             }
         };

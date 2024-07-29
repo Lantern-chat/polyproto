@@ -44,14 +44,14 @@ impl Constrained for Capabilities {
         // does not matter.
         if !is_ca && !can_sign && !can_commit_content {
             return Err(ConstraintError::Malformed(Some(
-                ERR_MSG_ACTOR_MISSING_SIGNING_CAPS.to_string(),
+                ERR_MSG_ACTOR_MISSING_SIGNING_CAPS.into(),
             )));
         }
 
         // Certificates cannot be both non-repudiating and repudiating
         if can_sign && can_commit_content {
             return Err(ConstraintError::Malformed(Some(
-                "Cannot have both signing and non-repudiation signing capabilities".to_string(),
+                "Cannot have both signing and non-repudiation signing capabilities".into(),
             )));
         }
 
@@ -60,14 +60,17 @@ impl Constrained for Capabilities {
         if is_ca || key_cert_sign {
             if !is_ca {
                 return Err(ConstraintError::Malformed(Some(
-                    "If KeyCertSign capability is wanted, CA flag must be true".to_string(),
+                    "If KeyCertSign capability is wanted, CA flag must be true".into(),
                 )));
             }
             if !key_cert_sign {
-                return Err(ConstraintError::Malformed(Some(format!(
-                    "{} Missing capability \"KeyCertSign\"",
-                    ERR_MSG_HOME_SERVER_MISSING_CA_ATTR
-                ))));
+                return Err(ConstraintError::Malformed(Some(
+                    format!(
+                        "{} Missing capability \"KeyCertSign\"",
+                        ERR_MSG_HOME_SERVER_MISSING_CA_ATTR
+                    )
+                    .into(),
+                )));
             }
         }
 
@@ -77,7 +80,7 @@ impl Constrained for Capabilities {
         if (has_only_encipher || has_only_decipher) && !has_key_agreement {
             Err(ConstraintError::Malformed(Some(
                 "KeyAgreement capability needs to be true to use OnlyEncipher or OnlyDecipher"
-                    .to_string(),
+                    .into(),
             )))
         } else {
             Ok(())

@@ -12,6 +12,7 @@ pub use key_usage::*;
 
 use der::asn1::SetOfVec;
 
+use spki::ObjectIdentifier;
 use x509_cert::attr::{Attribute, Attributes};
 use x509_cert::ext::{Extension, Extensions};
 
@@ -72,7 +73,7 @@ impl Capabilities {
     /// Sane default for actor [IdCsr]/[IdCert] [Capabilities]. Uses the DigitalSignature flag,
     /// not the ContentCommitment flag.
     pub fn default_actor() -> Self {
-        let key_usage = KeyUsages::new(&[KeyUsage::DigitalSignature]);
+        let key_usage = KeyUsages::new([KeyUsage::DigitalSignature]);
         let basic_constraints = BasicConstraints {
             ca: false,
             path_length: None,
@@ -85,7 +86,7 @@ impl Capabilities {
 
     /// Sane default for home server [IdCsr]/[IdCert] [Capabilities].
     pub fn default_home_server() -> Self {
-        let key_usage = KeyUsages::new(&[KeyUsage::KeyCertSign]);
+        let key_usage = KeyUsages::new([KeyUsage::KeyCertSign]);
         let basic_constraints = BasicConstraints {
             ca: true,
             path_length: Some(1),
@@ -97,7 +98,7 @@ impl Capabilities {
     }
 }
 
-impl TryFrom<Attributes> for Capabilities {
+impl TryFrom<&Attributes> for Capabilities {
     type Error = ConversionError;
 
     /// Performs the conversion.
@@ -106,25 +107,24 @@ impl TryFrom<Attributes> for Capabilities {
     /// this method are not guaranteed to be valid. You should call `validate()` on the result
     /// to ensure that the constraints are valid according to the X.509 standard and the polyproto
     /// specification.
-    fn try_from(value: Attributes) -> Result<Self, Self::Error> {
-        let mut key_usages = KeyUsages::new(&[]);
+    fn try_from(value: &Attributes) -> Result<Self, Self::Error> {
+        let mut key_usages = KeyUsages::new([]);
         let mut basic_constraints = BasicConstraints::default();
         let mut num_basic_constraints = 0u8;
         for item in value.iter() {
-            match item.oid.to_string().as_str() {
-                #[allow(unreachable_patterns)] // cargo thinks the below pattern is unreachable.
-                OID_KEY_USAGE => {
+            match item.oid {
+                oid if oid == ObjectIdentifier::new_unwrap(OID_KEY_USAGE) => {
                     key_usages = KeyUsages::try_from(item.clone())?;
                 }
-                OID_BASIC_CONSTRAINTS => {
-                    num_basic_constraints += 1;
-                    if num_basic_constraints > 1 {
-                        return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting > 1 BasicConstraints into Capabilities. Expected 1 BasicConstraints".to_string())));
-                    } else {
-                        basic_constraints = BasicConstraints::try_from(item.clone())?;
+                oid if oid == ObjectIdentifier::new_unwrap(OID_BASIC_CONSTRAINTS) => {
+                    if num_basic_constraints != 0 {
+                        return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting > 1 BasicConstraints into Capabilities. Expected 1 BasicConstraints".into())));
                     }
+
+                    num_basic_constraints += 1;
+                    basic_constraints = BasicConstraints::try_from(item)?;
                 }
-                _ => (),
+                _ => {}
             }
         }
         Ok(Capabilities {
@@ -145,11 +145,11 @@ impl TryFrom<Capabilities> for Attributes {
         let mut sov = SetOfVec::new();
         let insertion = sov.insert(Attribute::try_from(value.key_usage)?);
         if insertion.is_err() {
-            return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting non-unique element into SetOfVec. You likely have a duplicate value in your Capabilities".to_string())));
+            return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting non-unique element into SetOfVec. You likely have a duplicate value in your Capabilities".into())));
         }
         let insertion = sov.insert(Attribute::try_from(value.basic_constraints)?);
         if insertion.is_err() {
-            return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting non-unique element into SetOfVec. You likely have a duplicate value in your Capabilities".to_string())));
+            return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting non-unique element into SetOfVec. You likely have a duplicate value in your Capabilities".into())));
         }
         Ok(sov)
     }
@@ -180,15 +180,16 @@ impl TryFrom<Extensions> for Capabilities {
         let mut basic_constraints: BasicConstraints = BasicConstraints::default();
         let mut key_usage: KeyUsages = KeyUsages::default();
         for item in value.iter() {
-            #[allow(unreachable_patterns)] // cargo thinks that we have an unreachable pattern here
-            match item.extn_id.to_string().as_str() {
-                OID_BASIC_CONSTRAINTS => {
+            match item.extn_id {
+                oid if oid == ObjectIdentifier::new_unwrap(OID_BASIC_CONSTRAINTS) => {
                     basic_constraints = BasicConstraints::try_from(item.clone())?
                 }
-                OID_KEY_USAGE => {
+                oid if oid == ObjectIdentifier::new_unwrap(OID_KEY_USAGE) => {
                     key_usage = KeyUsages::try_from(item.clone())?
                 },
-                _ => return Err(ConversionError::InvalidInput(InvalidInput::Malformed(format!("Invalid OID found for converting this set of Extensions to Capabilities: {} is not a valid OID for BasicConstraints or KeyUsages", item.extn_id))))
+                _ => return Err(ConversionError::InvalidInput(InvalidInput::Malformed(
+                    format!("Invalid OID found for converting this set of Extensions to Capabilities: {} is not a valid OID for BasicConstraints or KeyUsages", item.extn_id).into()
+                )))
             };
         }
         Ok(Capabilities {
@@ -200,7 +201,6 @@ impl TryFrom<Extensions> for Capabilities {
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
-#[cfg(test)]
 mod test {
     use spki::ObjectIdentifier;
 
@@ -317,7 +317,7 @@ mod test_basic_constraints_from_attribute {
             path_length: Some(0),
         };
         let attribute = Attribute::try_from(bc).unwrap();
-        let result = BasicConstraints::try_from(attribute);
+        let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_ok());
     }
 
@@ -331,7 +331,7 @@ mod test_basic_constraints_from_attribute {
             oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
             values: sov,
         };
-        let result = BasicConstraints::try_from(attribute);
+        let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_err());
     }
 
@@ -344,7 +344,7 @@ mod test_basic_constraints_from_attribute {
         };
         let mut attribute = Attribute::try_from(bc).unwrap();
         attribute.oid = ObjectIdentifier::from_str("0.0.161.80085").unwrap();
-        let result = BasicConstraints::try_from(attribute);
+        let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_err());
     }
 
@@ -360,7 +360,7 @@ mod test_basic_constraints_from_attribute {
             oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
             values: sov,
         };
-        let result = BasicConstraints::try_from(attribute);
+        let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_err());
 
         let mut sov = SetOfVec::new();
@@ -372,7 +372,7 @@ mod test_basic_constraints_from_attribute {
             oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
             values: sov,
         };
-        let result = BasicConstraints::try_from(attribute);
+        let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_err());
     }
 
@@ -386,7 +386,7 @@ mod test_basic_constraints_from_attribute {
             oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
             values: sov,
         };
-        let result = BasicConstraints::try_from(attribute);
+        let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_err());
     }
 }

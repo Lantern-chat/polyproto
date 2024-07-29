@@ -45,14 +45,12 @@ impl FederationId {
             x
         };
         if regex.is_match(&matches) {
-            let fid = Self {
-                inner: matches.to_string(),
-            };
+            let fid = Self { inner: matches };
             fid.validate(None)?;
             Ok(fid)
         } else {
             Err(ConstraintError::Malformed(Some(
-                ERR_MSG_FEDERATION_ID_REGEX.to_string(),
+                ERR_MSG_FEDERATION_ID_REGEX.into(),
             )))
         }
     }

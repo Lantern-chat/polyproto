@@ -15,7 +15,7 @@ impl Constrained for FederationId {
         match fid_regex.is_match(&self.inner) {
             true => Ok(()),
             false => Err(ConstraintError::Malformed(Some(
-                ERR_MSG_FEDERATION_ID_REGEX.to_string(),
+                ERR_MSG_FEDERATION_ID_REGEX.into(),
             ))),
         }
     }

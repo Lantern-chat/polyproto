@@ -251,7 +251,7 @@ impl<S: Signature, P: PublicKey<S>> TryFrom<CertReqInfo> for IdCsrInner<S, P> {
             version: PkcsVersion::V1,
             subject: rdn_sequence,
             subject_public_key: PublicKey::try_from_public_key_info(public_key_info)?,
-            capabilities: Capabilities::try_from(value.attributes)?,
+            capabilities: Capabilities::try_from(&value.attributes)?,
             phantom_data: PhantomData,
         })
     }

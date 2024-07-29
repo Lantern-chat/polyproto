@@ -28,14 +28,14 @@ impl<S: Signature, P: PublicKey<S>> Constrained for IdCsrInner<S, P> {
                 Target::Actor => {
                     if self.capabilities.basic_constraints.ca {
                         return Err(ConstraintError::Malformed(Some(
-                            ERR_MSG_ACTOR_CANNOT_BE_CA.to_string(),
+                            ERR_MSG_ACTOR_CANNOT_BE_CA.into(),
                         )));
                     }
                 }
                 Target::HomeServer => {
                     if !self.capabilities.basic_constraints.ca {
                         return Err(ConstraintError::Malformed(Some(
-                            ERR_MSG_HOME_SERVER_MISSING_CA_ATTR.to_string(),
+                            ERR_MSG_HOME_SERVER_MISSING_CA_ATTR.into(),
                         )));
                     }
                 }
@@ -59,14 +59,14 @@ impl<S: Signature, P: PublicKey<S>> Constrained for IdCsr<S, P> {
                 Ok(data) => data,
                 Err(_) => {
                     log::warn!("[IdCsr::validate()] DER conversion failure when converting inner IdCsr to DER. IdCsr is likely malformed");
-                    return Err(ConstraintError::Malformed(Some("DER conversion failure when converting inner IdCsr to DER. IdCsr is likely malformed".to_string())))}
+                    return Err(ConstraintError::Malformed(Some("DER conversion failure when converting inner IdCsr to DER. IdCsr is likely malformed".into())))}
             }
         ) {
             Ok(_) => (),
             Err(_) => {
                 log::warn!(
                     "[IdCsr::validate()] {}", ERR_MSG_SIGNATURE_MISMATCH);
-                return Err(ConstraintError::Malformed(Some(ERR_MSG_SIGNATURE_MISMATCH.to_string())))}
+                return Err(ConstraintError::Malformed(Some(ERR_MSG_SIGNATURE_MISMATCH.into())))}
         };
         Ok(())
     }
@@ -90,20 +90,14 @@ impl<S: Signature, P: PublicKey<S>> Constrained for IdCertTbs<S, P> {
             target
         );
         self.capabilities.validate(target)?;
-        dbg!(self.issuer.to_string());
+        dbg!(&self.issuer);
         self.issuer.validate(Some(Target::HomeServer))?;
         self.subject.validate(target)?;
         log::trace!(
             "[IdCertTbs::validate()] checking if domain components of issuer and subject are equal"
         );
-        log::trace!(
-            "[IdCertTbs::validate()] Issuer: {}",
-            self.issuer.to_string()
-        );
-        log::trace!(
-            "[IdCertTbs::validate()] Subject: {}",
-            self.subject.to_string()
-        );
+        log::trace!("[IdCertTbs::validate()] Issuer: {}", self.issuer);
+        log::trace!("[IdCertTbs::validate()] Subject: {}", self.subject);
         match equal_domain_components(&self.issuer, &self.subject) {
             true => debug!("Domain components of issuer and subject are equal"),
             false => {
@@ -112,7 +106,7 @@ impl<S: Signature, P: PublicKey<S>> Constrained for IdCertTbs<S, P> {
                     ERR_MSG_DC_MISMATCH_ISSUER_SUBJECT, &self.issuer, &self.subject
                 );
                 return Err(ConstraintError::Malformed(Some(
-                    ERR_MSG_DC_MISMATCH_ISSUER_SUBJECT.to_string(),
+                    ERR_MSG_DC_MISMATCH_ISSUER_SUBJECT.into(),
                 )));
             }
         }
@@ -121,14 +115,14 @@ impl<S: Signature, P: PublicKey<S>> Constrained for IdCertTbs<S, P> {
                 Target::Actor => {
                     if self.capabilities.basic_constraints.ca {
                         return Err(ConstraintError::Malformed(Some(
-                            ERR_MSG_ACTOR_CANNOT_BE_CA.to_string(),
+                            ERR_MSG_ACTOR_CANNOT_BE_CA.into(),
                         )));
                     }
                 }
                 Target::HomeServer => {
                     if !self.capabilities.basic_constraints.ca {
                         return Err(ConstraintError::Malformed(Some(
-                            ERR_MSG_HOME_SERVER_MISSING_CA_ATTR.to_string(),
+                            ERR_MSG_HOME_SERVER_MISSING_CA_ATTR.into(),
                         )));
                     }
                 }

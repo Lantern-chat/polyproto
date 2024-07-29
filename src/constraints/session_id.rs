@@ -11,8 +11,8 @@ impl Constrained for SessionId {
             return Err(ConstraintError::OutOfBounds {
                 lower: 1,
                 upper: 32,
-                actual: self.len().to_string(),
-                reason: "SessionId too long".to_string(),
+                actual: usize::try_from(self.len()).expect("SessionId too long for usize"),
+                reason: "SessionId too long".into(),
             });
         }
         Ok(())

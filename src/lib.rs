@@ -134,7 +134,7 @@ pub use x509_cert::name::*;
 /// ## `Target` parameter
 ///
 /// The `target` parameter is used to specify the context in which the type should be validated.
-/// For example: Specifying a [Target] of `Actor` would also check that the IdCert is not a CA
+/// For example: Specifying a [Target] of `Actor` would also check that the `IdCert` is not a CA
 /// certificate, among other things.
 ///
 /// If the `target` is `None`, the type will be validated without

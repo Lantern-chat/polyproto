@@ -86,7 +86,7 @@ mod serde_support {
         where
             E: serde::de::Error,
         {
-            Ok(Ia5String(match der::asn1::Ia5String::new(&v.to_string()) {
+            Ok(Ia5String(match der::asn1::Ia5String::new(v) {
                 Ok(val) => val,
                 Err(e) => return Err(E::custom(e)),
             }))
@@ -98,7 +98,7 @@ mod serde_support {
         where
             S: serde::Serializer,
         {
-            serializer.serialize_str(self.0.to_string().as_str())
+            serializer.serialize_str(self.as_str())
         }
     }
 }
