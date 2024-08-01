@@ -2,8 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::str::FromStr;
-
 use der::asn1::{OctetString, SequenceOf, SetOfVec};
 use der::{Any, Decode, Encode, Tag, Tagged};
 use log::{trace, warn};
@@ -32,7 +30,7 @@ pub struct BasicConstraints {
 
 impl From<BasicConstraints> for ObjectIdentifier {
     fn from(_value: BasicConstraints) -> Self {
-        ObjectIdentifier::from_str(super::OID_BASIC_CONSTRAINTS).expect("Error occurred when converting BasicConstraints to ObjectIdentifier. Please report this crash at https://github.com/polyphony-chat/polyproto")
+        OID_BASIC_CONSTRAINTS
     }
 }
 
@@ -51,7 +49,7 @@ impl TryFrom<&Attribute> for BasicConstraints {
     /// these resulting [BasicConstraints].
     fn try_from(value: &Attribute) -> Result<Self, Self::Error> {
         // Basic input validation. Check OID of Attribute and length of the "values" SetOfVec provided.
-        if value.oid != ObjectIdentifier::new_unwrap(super::OID_BASIC_CONSTRAINTS) {
+        if value.oid != super::OID_BASIC_CONSTRAINTS {
             return Err(InvalidInput::Malformed(
                 format!(
                     "OID of value does not match any of OID_BASIC_CONSTRAINTS. Found OID {}",
@@ -178,7 +176,7 @@ impl TryFrom<Extension> for BasicConstraints {
         trace!("Converting Extension to BasicConstraints");
         trace!("Extension: {:#?}", value);
         #[allow(unreachable_patterns)]
-        if value.critical && ObjectIdentifier::new_unwrap(OID_BASIC_CONSTRAINTS) != value.extn_id {
+        if value.critical && OID_BASIC_CONSTRAINTS != value.extn_id {
             // Error if we encounter a "critical" X.509 extension which we do not know of
             warn!("Unknown critical extension: {:#?}", value.extn_id);
             return Err(ConversionError::UnknownCriticalExtension { oid: value.extn_id });

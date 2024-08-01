@@ -138,7 +138,7 @@ impl Signature for Ed25519Signature {
     fn algorithm_identifier() -> AlgorithmIdentifierOwned {
         AlgorithmIdentifierOwned {
             // This is the OID for Ed25519. It is defined in the IANA registry.
-            oid: ObjectIdentifier::from_str("1.3.101.112").unwrap(),
+            oid: ObjectIdentifier::new_unwrap("1.3.101.112"),
             // For this example, we don't need or want any parameters.
             parameters: None,
         }

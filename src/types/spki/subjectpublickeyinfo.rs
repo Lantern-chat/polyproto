@@ -121,8 +121,6 @@ mod serde_support {
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
-
     use der::asn1::BitString;
     use serde_json::json;
     use spki::ObjectIdentifier;
@@ -134,11 +132,11 @@ mod test {
     #[test]
     fn deserialize_serialize_spki_json() {
         let oids = [
-            ObjectIdentifier::from_str("1.1.3.1").unwrap(),
-            ObjectIdentifier::from_str("2.23.5672.1").unwrap(),
-            ObjectIdentifier::from_str("0.3.1.1").unwrap(),
-            ObjectIdentifier::from_str("1.2.3.4.5.6.7.8.9.0.12.3.4.5.6.67").unwrap(),
-            ObjectIdentifier::from_str("1.2.1122").unwrap(),
+            ObjectIdentifier::new_unwrap("1.1.3.1"),
+            ObjectIdentifier::new_unwrap("2.23.5672.1"),
+            ObjectIdentifier::new_unwrap("0.3.1.1"),
+            ObjectIdentifier::new_unwrap("1.2.3.4.5.6.7.8.9.0.12.3.4.5.6.67"),
+            ObjectIdentifier::new_unwrap("1.2.1122"),
         ];
 
         for oid in oids.into_iter() {
@@ -155,11 +153,11 @@ mod test {
     #[test]
     fn deserialize_serialize_spki_pem() {
         let oids = [
-            ObjectIdentifier::from_str("1.1.3.1").unwrap(),
-            ObjectIdentifier::from_str("2.23.5672.1").unwrap(),
-            ObjectIdentifier::from_str("0.3.1.1").unwrap(),
-            ObjectIdentifier::from_str("1.2.3.4.5.6.7.8.9.0.12.3.4.5.6.67").unwrap(),
-            ObjectIdentifier::from_str("1.2.1122").unwrap(),
+            ObjectIdentifier::new_unwrap("1.1.3.1"),
+            ObjectIdentifier::new_unwrap("2.23.5672.1"),
+            ObjectIdentifier::new_unwrap("0.3.1.1"),
+            ObjectIdentifier::new_unwrap("1.2.3.4.5.6.7.8.9.0.12.3.4.5.6.67"),
+            ObjectIdentifier::new_unwrap("1.2.1122"),
         ];
 
         for oid in oids.into_iter() {
@@ -176,11 +174,11 @@ mod test {
     #[test]
     fn deserialize_serialize_spki_der() {
         let oids = [
-            ObjectIdentifier::from_str("1.1.3.1").unwrap(),
-            ObjectIdentifier::from_str("2.23.5672.1").unwrap(),
-            ObjectIdentifier::from_str("0.3.1.1").unwrap(),
-            ObjectIdentifier::from_str("1.2.3.4.5.6.7.8.9.0.12.3.4.5.6.67").unwrap(),
-            ObjectIdentifier::from_str("1.2.1122").unwrap(),
+            ObjectIdentifier::new_unwrap("1.1.3.1"),
+            ObjectIdentifier::new_unwrap("2.23.5672.1"),
+            ObjectIdentifier::new_unwrap("0.3.1.1"),
+            ObjectIdentifier::new_unwrap("1.2.3.4.5.6.7.8.9.0.12.3.4.5.6.67"),
+            ObjectIdentifier::new_unwrap("1.2.1122"),
         ];
 
         for oid in oids.into_iter() {

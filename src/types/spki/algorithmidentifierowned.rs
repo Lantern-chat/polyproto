@@ -120,8 +120,6 @@ mod serde_support {
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
-
     use der::asn1::BitString;
     use der::{Any, Decode, Encode};
     use log::trace;
@@ -135,7 +133,7 @@ mod test {
     #[test]
     fn de_serialize() {
         init_logger();
-        let oid = ObjectIdentifier::from_str("1.1.1.4.5").unwrap();
+        let oid = ObjectIdentifier::new_unwrap("1.1.1.4.5");
         let alg = AlgorithmIdentifierOwned::new(oid, None);
         let json = json!(alg);
         let deserialized: AlgorithmIdentifierOwned = serde_json::from_value(json).unwrap();

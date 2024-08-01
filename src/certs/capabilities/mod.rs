@@ -22,27 +22,36 @@ use crate::{
 };
 
 /// Object Identifier for the KeyUsage::DigitalSignature variant.
-pub const OID_KEY_USAGE_DIGITAL_SIGNATURE: &str = "1.3.6.1.5.5.7.3.3";
+pub const OID_KEY_USAGE_DIGITAL_SIGNATURE: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.3");
 /// Object Identifier for the KeyUsage::CrlSign variant.
-pub const OID_KEY_USAGE_CRL_SIGN: &str = "1.3.6.1.5.5.7.3.2";
+pub const OID_KEY_USAGE_CRL_SIGN: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.2");
 /// Object Identifier for the KeyUsage::ContentCommitment variant.
-pub const OID_KEY_USAGE_CONTENT_COMMITMENT: &str = "1.3.6.1.5.5.7.3.8";
+pub const OID_KEY_USAGE_CONTENT_COMMITMENT: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.8");
 /// Object Identifier for the KeyUsage::KeyEncipherment variant.
-pub const OID_KEY_USAGE_KEY_ENCIPHERMENT: &str = "1.3.6.1.5.5.7.3.1";
+pub const OID_KEY_USAGE_KEY_ENCIPHERMENT: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.1");
 /// Object Identifier for the KeyUsage::DataEncipherment variant.
-pub const OID_KEY_USAGE_DATA_ENCIPHERMENT: &str = "1.3.6.1.5.5.7.3.4";
+pub const OID_KEY_USAGE_DATA_ENCIPHERMENT: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.4");
 /// Object Identifier for the KeyUsage::KeyAgreement variant.
-pub const OID_KEY_USAGE_KEY_AGREEMENT: &str = "1.3.6.1.5.5.7.3.9";
+pub const OID_KEY_USAGE_KEY_AGREEMENT: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.9");
 /// Object Identifier for the KeyUsage::KeyCertSign variant.
-pub const OID_KEY_USAGE_KEY_CERT_SIGN: &str = "1.3.6.1.5.5.7.3.3";
+pub const OID_KEY_USAGE_KEY_CERT_SIGN: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.3");
 /// Object Identifier for the KeyUsage::EncipherOnly variant.
-pub const OID_KEY_USAGE_ENCIPHER_ONLY: &str = "1.3.6.1.5.5.7.3.7";
+pub const OID_KEY_USAGE_ENCIPHER_ONLY: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.7");
 /// Object Identifier for the KeyUsage::DecipherOnly variant.
-pub const OID_KEY_USAGE_DECIPHER_ONLY: &str = "1.3.6.1.5.5.7.3.6";
+pub const OID_KEY_USAGE_DECIPHER_ONLY: ObjectIdentifier =
+    ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.3.6");
 /// Object Identifier for the BasicConstraints variant.
-pub const OID_BASIC_CONSTRAINTS: &str = "2.5.29.19";
+pub const OID_BASIC_CONSTRAINTS: ObjectIdentifier = ObjectIdentifier::new_unwrap("2.5.29.19");
 /// Object Identifier for the KeyUsage flag.
-pub const OID_KEY_USAGE: &str = "2.5.29.15";
+pub const OID_KEY_USAGE: ObjectIdentifier = ObjectIdentifier::new_unwrap("2.5.29.15");
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// An abstraction over X.509 Extensions and PKCS#10 Attributes, representing the capabilities
@@ -113,10 +122,10 @@ impl TryFrom<&Attributes> for Capabilities {
         let mut num_basic_constraints = 0u8;
         for item in value.iter() {
             match item.oid {
-                oid if oid == ObjectIdentifier::new_unwrap(OID_KEY_USAGE) => {
+                oid if oid == OID_KEY_USAGE => {
                     key_usages = KeyUsages::try_from(item.clone())?;
                 }
-                oid if oid == ObjectIdentifier::new_unwrap(OID_BASIC_CONSTRAINTS) => {
+                oid if oid == OID_BASIC_CONSTRAINTS => {
                     if num_basic_constraints != 0 {
                         return Err(ConversionError::InvalidInput(InvalidInput::Malformed("Tried inserting > 1 BasicConstraints into Capabilities. Expected 1 BasicConstraints".into())));
                     }
@@ -181,10 +190,10 @@ impl TryFrom<Extensions> for Capabilities {
         let mut key_usage: KeyUsages = KeyUsages::default();
         for item in value.iter() {
             match item.extn_id {
-                oid if oid == ObjectIdentifier::new_unwrap(OID_BASIC_CONSTRAINTS) => {
+                oid if oid == OID_BASIC_CONSTRAINTS => {
                     basic_constraints = BasicConstraints::try_from(item.clone())?
                 }
-                oid if oid == ObjectIdentifier::new_unwrap(OID_KEY_USAGE) => {
+                oid if oid == OID_KEY_USAGE => {
                     key_usage = KeyUsages::try_from(item.clone())?
                 },
                 _ => return Err(ConversionError::InvalidInput(InvalidInput::Malformed(
@@ -262,7 +271,7 @@ mod test_key_usage_from_attribute {
         sov.insert(Any::new(Tag::Integer, vec![0x00]).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str(OID_KEY_USAGE_CONTENT_COMMITMENT).unwrap(),
+            oid: OID_KEY_USAGE_CONTENT_COMMITMENT,
             values: sov,
         };
         let result = KeyUsages::try_from(attribute);
@@ -276,7 +285,7 @@ mod test_key_usage_from_attribute {
         sov.insert(Any::new(Tag::Boolean, vec![0x00]).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str("1.2.4.2.1.1.1.1.1.1.1.1.1.1.161.69").unwrap(),
+            oid: ObjectIdentifier::new_unwrap("1.2.4.2.1.1.1.1.1.1.1.1.1.1.161.69"),
             values: sov,
         };
         let result = KeyUsages::try_from(attribute);
@@ -290,7 +299,7 @@ mod test_key_usage_from_attribute {
         sov.insert(Any::new(Tag::Boolean, vec![0x02]).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str(OID_KEY_USAGE_CONTENT_COMMITMENT).unwrap(),
+            oid: OID_KEY_USAGE_CONTENT_COMMITMENT,
             values: sov,
         };
         let result = KeyUsages::try_from(attribute);
@@ -328,7 +337,7 @@ mod test_basic_constraints_from_attribute {
         sov.insert(Any::new(Tag::Ia5String, Ia5String::new("hello").unwrap().as_bytes()).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
+            oid: OID_BASIC_CONSTRAINTS,
             values: sov,
         };
         let result = BasicConstraints::try_from(&attribute);
@@ -343,7 +352,7 @@ mod test_basic_constraints_from_attribute {
             path_length: Some(0),
         };
         let mut attribute = Attribute::try_from(bc).unwrap();
-        attribute.oid = ObjectIdentifier::from_str("0.0.161.80085").unwrap();
+        attribute.oid = ObjectIdentifier::new_unwrap("0.0.161.80085");
         let result = BasicConstraints::try_from(&attribute);
         assert!(result.is_err());
     }
@@ -357,7 +366,7 @@ mod test_basic_constraints_from_attribute {
         sov.insert(Any::new(Tag::Boolean, vec![0x01]).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
+            oid: OID_BASIC_CONSTRAINTS,
             values: sov,
         };
         let result = BasicConstraints::try_from(&attribute);
@@ -369,7 +378,7 @@ mod test_basic_constraints_from_attribute {
         sov.insert(Any::new(Tag::Integer, vec![0x01]).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
+            oid: OID_BASIC_CONSTRAINTS,
             values: sov,
         };
         let result = BasicConstraints::try_from(&attribute);
@@ -383,7 +392,7 @@ mod test_basic_constraints_from_attribute {
         sov.insert(Any::new(Tag::Boolean, vec![0x02]).unwrap())
             .unwrap();
         let attribute = Attribute {
-            oid: ObjectIdentifier::from_str(OID_BASIC_CONSTRAINTS).unwrap(),
+            oid: OID_BASIC_CONSTRAINTS,
             values: sov,
         };
         let result = BasicConstraints::try_from(&attribute);

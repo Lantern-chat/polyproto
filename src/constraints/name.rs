@@ -4,7 +4,6 @@
 
 use crate::errors::ERR_MSG_DC_UID_MISMATCH;
 
-use spki::ObjectIdentifier;
 use x509_cert::attr::AttributeTypeAndValue;
 
 use super::*;
@@ -38,18 +37,18 @@ impl Constrained for Name {
 
             for item in rdn.0.iter() {
                 match item.oid {
-                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_UID) => {
+                    oid if oid == OID_RDN_UID => {
                         log::trace!("[Name::validate()] Found UID in RDN: {item}");
                         num_uid += 1;
                         uid = rdn;
                         validate_rdn_uid(item)?;
                     }
-                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_UNIQUE_IDENTIFIER) => {
+                    oid if oid == OID_RDN_UNIQUE_IDENTIFIER => {
                         log::trace!("[Name::validate()] Found uniqueIdentifier in RDN: {item}");
                         num_unique_identifier += 1;
                         validate_rdn_unique_identifier(item)?;
                     }
-                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_COMMON_NAME) => {
+                    oid if oid == OID_RDN_COMMON_NAME => {
                         log::trace!("[Name::validate()] Found Common Name in RDN: {item}");
                         num_cn += 1;
                         cn = rdn;
@@ -62,7 +61,7 @@ impl Constrained for Name {
                             });
                         }
                     }
-                    oid if oid == ObjectIdentifier::new_unwrap(OID_RDN_DOMAIN_COMPONENT) => {
+                    oid if oid == OID_RDN_DOMAIN_COMPONENT => {
                         log::trace!("[Name::validate()] Found Domain Component in RDN: {item}");
                         num_dc += 1;
                         vec_dc.push(rdn);

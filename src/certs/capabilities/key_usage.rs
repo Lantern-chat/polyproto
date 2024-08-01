@@ -2,11 +2,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::str::FromStr;
-
 use der::asn1::{BitString, OctetString, SetOfVec};
 use der::{Any, Decode, Encode, Tag, Tagged};
-use spki::ObjectIdentifier;
+
 use x509_cert::attr::Attribute;
 use x509_cert::ext::Extension;
 
@@ -238,7 +236,7 @@ impl TryFrom<Extension> for KeyUsages {
     type Error = ConversionError;
 
     fn try_from(value: Extension) -> Result<Self, Self::Error> {
-        if value.extn_id != ObjectIdentifier::new_unwrap(OID_KEY_USAGE) {
+        if value.extn_id != OID_KEY_USAGE {
             return Err(ConversionError::InvalidInput(InvalidInput::Malformed(
                 format!(
                     "Expected OID {OID_KEY_USAGE} for KeyUsages, found OID {}",
@@ -261,7 +259,7 @@ impl TryFrom<KeyUsages> for Attribute {
         let any = Any::from_der(&bitstring.to_der()?)?;
         sov.insert(any)?;
         Ok(Attribute {
-            oid: ObjectIdentifier::from_str(OID_KEY_USAGE)?,
+            oid: OID_KEY_USAGE,
             values: sov,
         })
     }
@@ -273,7 +271,7 @@ impl TryFrom<KeyUsages> for Extension {
         let bitstring = value.to_bitstring();
         let any = Any::from_der(&bitstring.to_der()?)?;
         Ok(Extension {
-            extn_id: ObjectIdentifier::from_str(OID_KEY_USAGE)?,
+            extn_id: OID_KEY_USAGE,
             critical: true,
             extn_value: OctetString::new(any.to_der()?)?,
         })
