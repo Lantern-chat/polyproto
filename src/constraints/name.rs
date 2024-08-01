@@ -157,8 +157,10 @@ fn validate_dc_matches_dc_in_uid(
     vec_dc: &[&RelativeDistinguishedName],
     uid: &RelativeDistinguishedName,
 ) -> Result<(), ConstraintError> {
+    let uid_string = uid.to_string();
+
     // Find the position of the @ in the UID
-    let position_of_at = match uid.to_string().find('@') {
+    let position_of_at = match uid_string.find('@') {
         Some(pos) => pos,
         None => {
             log::warn!("[validate_dc_matches_dc_in_uid] UID {uid} does not contain an @",);
@@ -168,8 +170,7 @@ fn validate_dc_matches_dc_in_uid(
         }
     };
     // Split the UID at the @
-    let uid_without_username = uid.to_string();
-    let uid_without_username = uid_without_username.split_at(position_of_at + 1).1; // +1 to not include the @
+    let uid_without_username = uid_string.split_at(position_of_at + 1).1; // +1 to not include the @
 
     let dc_normalized_uid: Vec<&str> = uid_without_username.split('.').collect();
     dbg!(&dc_normalized_uid);

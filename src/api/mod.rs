@@ -62,8 +62,8 @@ impl HttpClient {
     }
 
     /// Returns the URL
-    pub fn url(&self) -> String {
-        self.url.to_string()
+    pub fn url(&self) -> &Url {
+        &self.url
     }
 
     /// Sets the base URL of the client.

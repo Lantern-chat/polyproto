@@ -11,7 +11,7 @@ use serde_json::json;
 use crate::certs::idcert::IdCert;
 use crate::certs::idcsr::IdCsr;
 use crate::certs::{PublicKeyInfo, SessionId};
-use crate::errors::{ConversionError, RequestError};
+use crate::errors::ConversionError;
 use crate::key::PublicKey;
 use crate::signature::Signature;
 use crate::types::routes::core::v1::*;
@@ -59,15 +59,12 @@ impl HttpClient {
         let pem = HttpClient::handle_response::<String>(request_response).await?;
         log::debug!("Received IdCert: \n{}", pem);
         let id_cert = IdCert::<S, P>::from_pem_unchecked(&pem)?;
-        match id_cert.full_verify_home_server(
+        id_cert.full_verify_home_server(
             std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
-        ) {
-            Ok(_) => (),
-            Err(e) => return Err(RequestError::ConversionError(e.into())),
-        };
+        )?;
         Ok(id_cert)
     }
 
@@ -92,10 +89,7 @@ impl HttpClient {
         let response = request.send().await;
         let pem = HttpClient::handle_response::<String>(response).await?;
         let id_cert = IdCert::<S, P>::from_pem_unchecked(&pem)?;
-        match id_cert.full_verify_home_server(unix_time.unwrap_or(current_unix_time())) {
-            Ok(_) => (),
-            Err(e) => return Err(RequestError::ConversionError(e.into())),
-        };
+        id_cert.full_verify_home_server(unix_time.unwrap_or(current_unix_time()))?;
         Ok(id_cert)
     }
 
@@ -323,7 +317,7 @@ impl<S: Signature, P: PublicKey<S>> TryFrom<IdCertExtJson> for IdCertExt<S, P> {
 
     fn try_from(id_cert: IdCertExtJson) -> Result<Self, Self::Error> {
         Ok(Self {
-            id_cert: IdCert::from_pem_unchecked(id_cert.id_cert.as_str())?,
+            id_cert: IdCert::from_pem_unchecked(&id_cert.id_cert)?,
             invalidated: id_cert.invalidated,
         })
     }

@@ -162,21 +162,11 @@ impl<S: Signature, P: PublicKey<S>> IdCert<S, P> {
         time: u64,
         home_server_public_key: &P,
     ) -> Result<Self, InvalidCert> {
-        let cert = match IdCert::from_der_unchecked(value) {
-            Ok(cert) => cert,
-            Err(e) => {
-                return Err(InvalidCert::InvalidProperties(ConstraintError::Malformed(
-                    Some(e.to_string().into()), // TODO: Fix this
-                )));
-            }
-        };
+        let cert = IdCert::from_der_unchecked(value)?;
+
         match target {
-            Target::Actor => {
-                cert.full_verify_actor(time, home_server_public_key)?;
-            }
-            Target::HomeServer => {
-                cert.full_verify_home_server(time)?;
-            }
+            Target::Actor => cert.full_verify_actor(time, home_server_public_key)?,
+            Target::HomeServer => cert.full_verify_home_server(time)?,
         }
         Ok(cert)
     }
@@ -203,21 +193,10 @@ impl<S: Signature, P: PublicKey<S>> IdCert<S, P> {
         time: u64,
         home_server_public_key: &P,
     ) -> Result<Self, InvalidCert> {
-        let cert = match IdCert::from_pem_unchecked(pem) {
-            Ok(cert) => cert,
-            Err(e) => {
-                return Err(InvalidCert::InvalidProperties(ConstraintError::Malformed(
-                    Some(e.to_string().into()), // TODO: Fix this
-                )));
-            }
-        };
+        let cert = IdCert::from_pem_unchecked(pem)?;
         match target {
-            Target::Actor => {
-                cert.full_verify_actor(time, home_server_public_key)?;
-            }
-            Target::HomeServer => {
-                cert.full_verify_home_server(time)?;
-            }
+            Target::Actor => cert.full_verify_actor(time, home_server_public_key)?,
+            Target::HomeServer => cert.full_verify_home_server(time)?,
         }
         Ok(cert)
     }

@@ -250,7 +250,7 @@ fn any_to_bool(value: &Any) -> Result<bool, ConstraintError> {
         },
         _ => {
             warn!("Encountered unexpected tag: {:?}", value.tag());
-            Err(ConstraintError::Malformed(Some(format!("Found {:?} in value, which does not match expected [Tag::Boolean, Tag::Integer, Tag::Null]", value.tag().to_string()).into())))
+            Err(ConstraintError::Malformed(Some(format!("Found {:?} in value, which does not match expected [Tag::Boolean, Tag::Integer, Tag::Null]", value.tag()).into())))
         }
     }
 }

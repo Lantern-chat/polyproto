@@ -2,10 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt::Display;
+
 use spki::{AlgorithmIdentifierOwned, SignatureBitStringEncoding};
 
 /// A signature value, generated using a [`SignatureAlgorithm`]
-pub trait Signature: PartialEq + Eq + SignatureBitStringEncoding + Clone + ToString {
+pub trait Signature: Display + PartialEq + Eq + SignatureBitStringEncoding + Clone {
     /// The underlying signature type
     type Signature;
     /// The signature value

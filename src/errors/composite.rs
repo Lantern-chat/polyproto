@@ -13,9 +13,15 @@ pub enum InvalidCert {
     #[error(transparent)]
     /// Signature or public key are invalid
     PublicKeyError(#[from] PublicKeyError),
+
     #[error(transparent)]
     /// The certificate does not pass validation of polyproto constraints
     InvalidProperties(#[from] ConstraintError),
+
+    /// The certificate does not pass validation of polyproto constraints due to invalid input
+    #[error(transparent)]
+    Conversion(#[from] ConversionError),
+
     #[error("The validity period of the certificate is invalid, or the certificate is expired")]
     /// The certificate is expired or has an invalid validity period
     InvalidValidity,
@@ -27,6 +33,7 @@ pub enum PublicKeyError {
     #[error("The signature does not match the data")]
     /// The signature does not match the data
     BadSignature,
+
     #[error("The provided PublicKeyInfo could not be made into a PublicKey")]
     /// The provided PublicKey is invalid
     BadPublicKeyInfo,
@@ -38,24 +45,25 @@ pub enum ConversionError {
     #[error(transparent)]
     /// The constraints of the source or target types were met
     ConstraintError(#[from] ConstraintError),
+
     #[error(transparent)]
     /// The input was invalid - Either malformed or out of bounds
     InvalidInput(#[from] InvalidInput),
+
     #[error("Encountered DER encoding error")]
     /// An error occurred while parsing a DER encoded object
     DerError(der::Error),
+
     #[error("Encountered DER OID error")]
     /// An error occurred while parsing an OID
     ConstOidError(der::oid::Error),
+
     #[error("Critical extension cannot be converted")]
     /// A critical extension is unknown and cannot be converted
     UnknownCriticalExtension {
         /// The OID of the unknown extension
         oid: ObjectIdentifier,
     },
-    #[error(transparent)]
-    /// The source or target certificate is invalid
-    InvalidCert(#[from] InvalidCert),
 }
 #[cfg(feature = "reqwest")]
 #[derive(Error, Debug)]
@@ -64,15 +72,21 @@ pub enum RequestError {
     #[error(transparent)]
     /// Reqwest encountered an error
     HttpError(#[from] reqwest::Error),
+
     #[error("Failed to deserialize response into expected type")]
     /// The response could not be deserialized into the expected type
     DeserializationError(#[from] serde_json::Error),
+
     #[error("Failed to convert response into expected type")]
     /// The response could not be converted into the expected type
     ConversionError(#[from] ConversionError),
+
     #[error(transparent)]
     /// The URL could not be parsed
     UrlError(#[from] url::ParseError),
+
+    #[error(transparent)]
+    InvalidCert(#[from] InvalidCert),
 }
 
 impl From<der::Error> for ConversionError {
