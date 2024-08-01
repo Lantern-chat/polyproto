@@ -6,6 +6,8 @@ use std::fmt::Display;
 
 use spki::{AlgorithmIdentifierOwned, SignatureBitStringEncoding};
 
+use crate::errors::ConversionError;
+
 /// A signature value, generated using a [`SignatureAlgorithm`]
 pub trait Signature: Display + PartialEq + Eq + SignatureBitStringEncoding + Clone {
     /// The underlying signature type
@@ -15,5 +17,5 @@ pub trait Signature: Display + PartialEq + Eq + SignatureBitStringEncoding + Clo
     /// The [`AlgorithmIdentifierOwned`] associated with this signature
     fn algorithm_identifier() -> AlgorithmIdentifierOwned;
     /// From a byte slice, create a new [Self]
-    fn from_bytes(signature: &[u8]) -> Self;
+    fn from_bytes(signature: &[u8]) -> Result<Self, ConversionError>;
 }

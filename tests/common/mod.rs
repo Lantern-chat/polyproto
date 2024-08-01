@@ -144,7 +144,7 @@ impl Signature for Ed25519Signature {
         }
     }
 
-    fn from_bytes(signature: &[u8]) -> Self {
+    fn from_bytes(signature: &[u8]) -> Result<Self, ConversionError> {
         let mut signature_vec = signature.to_vec();
         signature_vec.resize(64, 0);
         let signature_array: [u8; 64] = {
@@ -152,10 +152,10 @@ impl Signature for Ed25519Signature {
             array.copy_from_slice(&signature_vec[..]);
             array
         };
-        Self {
+        Ok(Self {
             signature: Ed25519DalekSignature::from_bytes(&signature_array),
             algorithm: Self::algorithm_identifier(),
-        }
+        })
     }
 }
 

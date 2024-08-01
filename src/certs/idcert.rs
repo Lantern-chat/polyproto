@@ -312,12 +312,9 @@ impl<S: Signature, P: PublicKey<S>> TryFrom<Certificate> for IdCert<S, P> {
     /// manually, the caller is responsible for verifying the correctness of this `IdCert` using
     /// the [Constrained] trait.
     fn try_from(value: Certificate) -> Result<Self, Self::Error> {
-        let id_cert_tbs = value.tbs_certificate.try_into()?;
-        let signature = S::from_bytes(value.signature.raw_bytes());
-        let cert = IdCert {
-            id_cert_tbs,
-            signature,
-        };
-        Ok(cert)
+        Ok(IdCert {
+            id_cert_tbs: value.tbs_certificate.try_into()?,
+            signature: S::from_bytes(value.signature.raw_bytes())?,
+        })
     }
 }
